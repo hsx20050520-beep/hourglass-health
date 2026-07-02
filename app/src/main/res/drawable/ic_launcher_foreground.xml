@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background circle -->
+    <path
+        android:fillColor="#D4A017"
+        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+    <!-- Hourglass top triangle -->
+    <path
+        android:fillColor="#FFFEF5"
+        android:pathData="M32,30L76,30L64,48L44,48Z" />
+    <!-- Hourglass bottom triangle -->
+    <path
+        android:fillColor="#FFFEF5"
+        android:pathData="M44,60L64,60L76,78L32,78Z" />
+    <!-- Sand streaming middle -->
+    <path
+        android:fillColor="#FFF8DC"
+        android:pathData="M52,48L56,48L56,60L52,60Z" />
+    <!-- Sand pile at bottom -->
+    <path
+        android:fillColor="#FFF8DC"
+        android:pathData="M44,72L64,72L58,78L50,78Z" />
+    <!-- Glass outline -->
+    <path
+        android:strokeColor="#FFFEF5"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M32,30L76,30L64,48L64,60L76,78L32,78L44,60L44,48Z" />
+    <!-- Neck line -->
+    <path
+        android:strokeColor="#FFFEF5"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M44,54L64,54" />
+</vector>

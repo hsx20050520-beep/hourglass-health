@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">健康沙漏</string>
+    <string name="tab_sleep">睡眠分析</string>
+    <string name="tab_water">喝水提醒</string>
+    <string name="tab_band">手环数据</string>
+    <string name="connect_band">连接手环</string>
+    <string name="disconnect_band">断开连接</string>
+    <string name="connecting">连接中…</string>
+    <string name="connected">已连接</string>
+    <string name="disconnected">未连接</string>
+    <string name="band_not_found">未找到手环，请确保蓝牙已开启并靠近手环</string>
+    <string name="last_sleep">昨晚睡眠</string>
+    <string name="deep_sleep">深睡</string>
+    <string name="light_sleep">浅睡</string>
+    <string name="rem_sleep">REM</string>
+    <string name="awake_time">清醒</string>
+    <string name="heart_rate">心率</string>
+    <string name="resting_hr">静息心率</string>
+    <string name="water_interval">喝水间隔</string>
+    <string name="water_reminder_on">喝水提醒已开启</string>
+    <string name="water_reminder_off">喝水提醒已关闭</string>
+    <string name="drink_water_now">该喝水了！💧</string>
+    <string name="water_notification_title">💧 喝水时间</string>
+    <string name="water_notification_text">已过 %1$s 分钟，该喝杯水了</string>
+    <string name="sleep_quality_excellent">睡眠质量：优秀</string>
+    <string name="sleep_quality_good">睡眠质量：良好</string>
+    <string name="sleep_quality_fair">睡眠质量：一般</string>
+    <string name="sleep_quality_poor">睡眠质量：较差</string>
+    <string name="advice_early_bed">建议今晚在 %1$s 前上床</string>
+    <string name="advice_wake_up">建议起床时间：%1$s</string>
+    <string name="minutes">分钟</string>
+    <string name="hours">小时</string>
+</resources>
