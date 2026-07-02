@@ -42,5 +42,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
 
     // Health Connect API
-    implementation("androidx.health:health-connect-client:1.1.0")
+    implementation("androidx.health:health-connect-client:1.0.0")
 }
