@@ -2,51 +2,31 @@ package com.hourglass.health
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.tabs.TabLayout
-import com.hourglass.health.health.HealthConnectManager
 import com.hourglass.health.model.SleepData
 import com.hourglass.health.sleep.SleepAnalyzer
 import com.hourglass.health.water.WaterReminderService
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var healthManager: HealthConnectManager
     private lateinit var container: LinearLayout
-
-    // Sleep section
     private lateinit var sleepScoreText: TextView
     private lateinit var sleepDetailText: TextView
     private lateinit var sleepAdviceText: TextView
     private lateinit var sleepTipsList: LinearLayout
     private lateinit var sleepCard: LinearLayout
-    private lateinit var connectStatusText: TextView
-    private lateinit var healthConnectBtn: Button
-
-    // Water section
     private lateinit var waterToggle: Switch
     private lateinit var waterIntervalSeek: SeekBar
     private lateinit var waterIntervalLabel: TextView
     private lateinit var waterStatusText: TextView
     private lateinit var waterCard: LinearLayout
-
-    // Health data section
-    private lateinit var hrValueText: TextView
-    private lateinit var stepsValueText: TextView
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { refreshData() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,37 +59,11 @@ class MainActivity : AppCompatActivity() {
         buildWaterSection(waterCard)
         contentInner.addView(waterCard)
 
-        val healthCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        buildHealthDataSection(healthCard)
-        contentInner.addView(healthCard)
-
         scrollContent.addView(contentInner)
         container.addView(scrollContent)
         setContentView(container)
 
-        healthManager = HealthConnectManager(this)
-
-        requestNotificationPermission()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        refreshData()
-    }
-
-    private fun refreshData() {
-        lifecycleScope.launch {
-            val sleep = healthManager.readTodaySleep()
-            if (sleep != null) updateSleepUI(sleep)
-
-            val hr = healthManager.readLatestHeartRate()
-            if (hr > 0) hrValueText.text = hr.toString()
-
-            val steps = healthManager.readTodaySteps()
-            stepsValueText.text = steps.toString()
-        }
+        requestNotifPermission()
     }
 
     private fun buildHeader() {
@@ -119,7 +73,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(20), dp(48), dp(20), dp(16))
         }
         header.addView(TextView(this).apply {
-            text = "\u23f3 健康沙漏"
+            text = "\u23f3 \u5065\u5eb7\u6c99\u6f0f"
             textSize = 26f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setTextColor(0xFF1E293B.toInt())
@@ -135,20 +89,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildTabLayout() {
         val tabLayout = TabLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+            layoutParams = LinearLayout.LayoutParams(MP, WRAP_CONTENT)
             setSelectedTabIndicatorColor(0xFFD4A017.toInt())
             setTabTextColors(0xFF94A3B8.toInt(), 0xFFD4A017.toInt())
         }
-        tabLayout.addTab(tabLayout.newTab().setText("\ud83d\udca4 睡眠分析"))
-        tabLayout.addTab(tabLayout.newTab().setText("\ud83d\udca7 喝水提醒"))
-        tabLayout.addTab(tabLayout.newTab().setText("\ud83d\udcc8 健康数据"))
+        tabLayout.addTab(tabLayout.newTab().setText("\u7761\u7720\u5206\u6790"))
+        tabLayout.addTab(tabLayout.newTab().setText("\u559d\u6c34\u63d0\u9192"))
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                when (tab?.position) {
-                    0 -> { sleepCard.visibility = View.VISIBLE; waterCard.visibility = View.GONE }
-                    1 -> { sleepCard.visibility = View.GONE; waterCard.visibility = View.VISIBLE }
-                    2 -> { sleepCard.visibility = View.GONE; waterCard.visibility = View.GONE }
-                }
+                sleepCard.visibility = if (tab?.position == 0) View.VISIBLE else View.GONE
+                waterCard.visibility = if (tab?.position == 1) View.VISIBLE else View.GONE
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
@@ -157,43 +107,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun buildSleepSection(parent: LinearLayout) {
-        connectStatusText = TextView(this).apply {
+        parent.addView(sectionTitle("\u7761\u7720\u5206\u6790"))
+        parent.addView(spacer(dp(8)))
+        parent.addView(TextView(this).apply {
+            text = "\u70b9\u51fb\u4e0b\u65b9\u6309\u94ae\u52a0\u8f7d\u793a\u4f8b\u6570\u636e"
             textSize = 13f
             setTextColor(0xFF94A3B8.toInt())
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFFFFF8DC.toInt())
-                cornerRadius = dp(2).toFloat()
-            }
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
-                setMargins(dp(16), dp(8), dp(16), dp(16))
-            }
-        }
-        updateConnectStatus()
-        parent.addView(connectStatusText)
-
-        healthConnectBtn = Button(this).apply {
-            text = "\ud83d\udd0d 连接 Health Connect"
-            setTextColor(0xFFFFFFFF.toInt())
-            textSize = 14f
-            setBackgroundColor(0xFF3B82F6.toInt())
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(44))
-        }
-        healthConnectBtn.setOnClickListener {
-            permissionLauncher.launch(healthManager.getPermissionIntent())
-        }
-        parent.addView(healthConnectBtn)
-
-        parent.addView(spacer(dp(16)))
-
-        parent.addView(sectionTitle("\ud83d\udca4 昨晚睡眠分析"))
-        parent.addView(spacer(dp(12)))
+        })
+        parent.addView(spacer(dp(20)))
 
         sleepScoreText = TextView(this).apply {
             gravity = android.view.Gravity.CENTER
             textSize = 48f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(80))
+            layoutParams = LinearLayout.LayoutParams(MP, dp(80))
             text = "--"
         }
         parent.addView(sleepScoreText)
@@ -203,7 +130,7 @@ class MainActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER
             textSize = 14f
             setTextColor(0xFF1E293B.toInt())
-            text = "\ud83d\udca1 打开 Health Connect 授权后自动读取"
+            text = "\u70b9\u51fb\u52a0\u8f7d\u7761\u7720\u6570\u636e"
         }
         parent.addView(sleepDetailText)
         parent.addView(spacer(dp(16)))
@@ -226,22 +153,20 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
         }
         parent.addView(sleepTipsList)
+        parent.addView(spacer(dp(16)))
 
-        parent.addView(spacer(dp(12)))
-
-        // Refresh button
         Button(this).apply {
-            text = "\ud83d\udd04 刷新数据"
+            text = "\u52a0\u8f7d\u793a\u4f8b\u6570\u636e"
             setTextColor(0xFFFFFFFF.toInt())
             textSize = 14f
             setBackgroundColor(0xFFD4A017.toInt())
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(44))
-            setOnClickListener { refreshData() }
+            layoutParams = LinearLayout.LayoutParams(MP, dp(44))
+            setOnClickListener { loadDemo() }
         }.let { parent.addView(it) }
     }
 
     private fun buildWaterSection(parent: LinearLayout) {
-        parent.addView(sectionTitle("\ud83d\udca7 喝水提醒"))
+        parent.addView(sectionTitle("\u559d\u6c34\u63d0\u9192"))
         parent.addView(spacer(dp(12)))
 
         val toggleRow = LinearLayout(this).apply {
@@ -249,21 +174,21 @@ class MainActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         toggleRow.addView(TextView(this).apply {
-            text = "开启喝水提醒"
+            text = "\u5f00\u542f\u559d\u6c34\u63d0\u9192"
             textSize = 16f
             setTextColor(0xFF1E293B.toInt())
             layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
         })
         waterToggle = Switch(this).apply {
             isChecked = WaterReminderService.isServiceRunning(this@MainActivity)
-            setOnCheckedChangeListener { _, isChecked -> toggleWaterReminder(isChecked) }
+            setOnCheckedChangeListener { _, isChecked -> toggleWater(isChecked) }
         }
         toggleRow.addView(waterToggle)
         parent.addView(toggleRow)
         parent.addView(spacer(dp(16)))
 
         parent.addView(TextView(this).apply {
-            text = "提醒间隔"
+            text = "\u63d0\u9192\u95f4\u9694"
             textSize = 14f
             setTextColor(0xFF1E293B.toInt())
         })
@@ -281,10 +206,10 @@ class MainActivity : AppCompatActivity() {
             max = 4; progress = 1
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
-                    val min = intervalFromProgress(p)
-                    waterIntervalLabel.text = formatInterval(min)
-                    WaterReminderService.setInterval(this@MainActivity, min)
-                    if (waterToggle.isChecked) restartWaterReminder()
+                    val m = intervalVal(p)
+                    waterIntervalLabel.text = intervalText(m)
+                    WaterReminderService.setInterval(this@MainActivity, m)
+                    if (waterToggle.isChecked) restartWater()
                 }
                 override fun onStartTrackingTouch(sb: SeekBar?) {}
                 override fun onStopTrackingTouch(sb: SeekBar?) {}
@@ -292,13 +217,13 @@ class MainActivity : AppCompatActivity() {
         }
         parent.addView(waterIntervalSeek)
 
-        val initMin = WaterReminderService.getInterval(this)
-        waterIntervalSeek.progress = progressFromInterval(initMin)
-        waterIntervalLabel.text = formatInterval(initMin)
+        val initM = WaterReminderService.getInterval(this)
+        waterIntervalSeek.progress = intervalProg(initM)
+        waterIntervalLabel.text = intervalText(initM)
         parent.addView(spacer(dp(8)))
         parent.addView(TextView(this).apply {
             gravity = android.view.Gravity.CENTER
-            text = "30分钟    1小时    1.5小时    2小时    3小时"
+            text = "30m    1h    1.5h    2h    3h"
             textSize = 11f
             setTextColor(0xFF94A3B8.toInt())
         })
@@ -317,7 +242,7 @@ class MainActivity : AppCompatActivity() {
             cornerRadius = dp(8).toFloat()
         }
         parent.addView(TextView(this).apply {
-            text = "\ud83d\udca1 每日饮水建议：\n\u2022 男性 2.5-3L / 女性 2-2.5L\n\u2022 每次喝 150-200ml\n\u2022 早起一杯温水\n\u2022 餐前半小时一杯"
+            text = "\u6bcf\u65e5\u996e\u6c34\u5efa\u8bae\uff1a\n- \u7537\u6027 2.5-3L / \u5973\u6027 2-2.5L\n- \u6bcf\u6b21\u559d 150-200ml\n- \u65e9\u8d77\u4e00\u676f\u6e29\u6c34\n- \u9910\u524d\u534a\u5c0f\u65f6\u4e00\u676f"
             textSize = 13f
             setTextColor(0xFF1E293B.toInt())
             setPadding(dp(16), dp(12), dp(16), dp(12))
@@ -325,131 +250,66 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun buildHealthDataSection(parent: LinearLayout) {
-        parent.addView(sectionTitle("\ud83d\udcc8 今日健康概览"))
-        parent.addView(spacer(dp(12)))
+    private fun loadDemo() {
+        val cal = Calendar.getInstance()
+        val bt = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 30) }.timeInMillis
+        val wt = cal.apply { set(Calendar.HOUR_OF_DAY, 7); set(Calendar.MINUTE, 15) }.timeInMillis
 
-        val cardBg = android.graphics.drawable.GradientDrawable().apply {
-            setColor(0xFFFFFEF5.toInt())
-            cornerRadius = dp(8).toFloat()
-            setStroke(dp(1), 0xFFE2E8F0.toInt())
-        }
-
-        // Heart Rate row
-        val hrRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-            background = cardBg
-        }
-        hrRow.addView(TextView(this).apply {
-            text = "\ud83d\udc93 心率"
-            textSize = 16f
-            setTextColor(0xFF1E293B.toInt())
-            layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
-        })
-        hrValueText = TextView(this).apply {
-            textSize = 24f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setTextColor(0xFFEF4444.toInt())
-            text = "-- bpm"
-        }
-        hrRow.addView(hrValueText)
-        parent.addView(hrRow)
-        parent.addView(spacer(dp(8)))
-
-        // Steps row
-        val stepRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-            background = cardBg
-        }
-        stepRow.addView(TextView(this).apply {
-            text = "\ud83d\udeb6 步数"
-            textSize = 16f
-            setTextColor(0xFF1E293B.toInt())
-            layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
-        })
-        stepsValueText = TextView(this).apply {
-            textSize = 24f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setTextColor(0xFF16A34A.toInt())
-            text = "--"
-        }
-        stepRow.addView(stepsValueText)
-        parent.addView(stepRow)
-
-        // Info text
-        parent.addView(spacer(dp(16)))
-        parent.addView(TextView(this).apply {
-            text = "\ud83d\udca1 数据来自 Health Connect，需先在 Mi Fitness 中开启 Health Connect 同步"
-            textSize = 12f
-            setTextColor(0xFF94A3B8.toInt())
-            gravity = android.view.Gravity.CENTER
-        })
-    }
-
-    private fun updateConnectStatus() {
-        connectStatusText.text = "\u24c2 数据源: Health Connect\n\u2460 确保 Mi Fitness 已同步到手环"
-    }
-
-    private fun updateSleepUI(sleep: SleepData) {
-        val analysis = SleepAnalyzer.analyze(sleep)
+        val demo = SleepData(
+            date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
+            bedTime = bt, wakeTime = wt,
+            totalMinutes = 465, deepMinutes = 98,
+            lightMinutes = 210, remMinutes = 112, awakeMinutes = 45,
+            avgHeartRate = 58, avgSpo2 = 97, respiratoryRate = 16.5f
+        )
+        val analysis = SleepAnalyzer.analyze(demo)
 
         sleepScoreText.text = analysis.score.toString()
         sleepScoreText.setTextColor(scoreColor(analysis.score))
 
-        val deepPct = "%.0f".format(analysis.deepPercent)
-        val lightPct = "%.0f".format(analysis.lightPercent)
-        val remPct = "%.0f".format(analysis.remPercent)
-        sleepDetailText.text = "总睡眠 %.1f 小时\n深睡 %s%% - 浅睡 %s%% - REM %s%%\n质量: %s".format(
-            analysis.totalHours, deepPct, lightPct, remPct, analysis.label
-        )
+        val dpStr = "%.0f%%".format(analysis.deepPercent)
+        val lpStr = "%.0f%%".format(analysis.lightPercent)
+        val rpStr = "%.0f%%".format(analysis.remPercent)
+        sleepDetailText.text = "%.1fh sleep\\nDeep $dpStr Light $lpStr REM $rpStr\\nRating: ${analysis.label}".format(analysis.totalHours)
 
-        sleepAdviceText.text = buildString {
-            append("\ud83d\ude0c 建议作息：${analysis.recommendedBedTime} \u2192 ${analysis.recommendedWakeTime}\n")
-            if (analysis.issues.isNotEmpty()) {
-                append("\n\u26a0\ufe0f 问题：\n")
-                analysis.issues.forEach { append("\u2022 $it\n") }
-            }
-        }
+        sleepAdviceText.text = "Bed: ${analysis.recommendedBedTime} -> ${analysis.recommendedWakeTime}\\n" +
+            analysis.issues.joinToString("\\n") { "! $it" }
 
         sleepTipsList.removeAllViews()
         analysis.tips.forEach { tip ->
             sleepTipsList.addView(TextView(this).apply {
-                text = "\u2705 $tip"
+                text = tip
                 textSize = 13f
                 setTextColor(0xFF1E293B.toInt())
-                setPadding(dp(8), dp(6), dp(8), dp(6))
+                setPadding(dp(8), dp(4), dp(8), dp(4))
             })
         }
     }
 
-    private fun toggleWaterReminder(enabled: Boolean) {
+    private fun toggleWater(enabled: Boolean) {
         val intent = Intent(this, WaterReminderService::class.java)
         if (enabled) {
             intent.action = WaterReminderService.ACTION_START
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent)
             else startService(intent)
-            waterStatusText.text = "\u2705 喝水提醒已开启"
+            waterStatusText.text = "Water reminder ON"
         } else {
             intent.action = WaterReminderService.ACTION_STOP
             stopService(intent)
-            waterStatusText.text = "喝水提醒已关闭"
+            waterStatusText.text = "Water reminder OFF"
         }
     }
 
-    private fun restartWaterReminder() {
-        val intent = Intent(this, WaterReminderService::class.java)
-        stopService(intent)
-        intent.action = WaterReminderService.ACTION_START
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
-        else startService(intent)
+    private fun restartWater() {
+        val i = Intent(this, WaterReminderService::class.java)
+        stopService(i)
+        i.action = WaterReminderService.ACTION_START
+        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i)
+        else startService(i)
     }
 
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun requestNotifPermission() {
+        if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
             ) {
@@ -466,34 +326,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun spacer(h: Int): View = View(this).apply {
-        layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, h)
+        layoutParams = LinearLayout.LayoutParams(MP, h)
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
-
-    private fun scoreColor(s: Int): Int = when {
-        s >= 80 -> 0xFF16A34A.toInt()
-        s >= 60 -> 0xFF3B82F6.toInt()
-        s >= 40 -> 0xFFD97706.toInt()
-        else -> 0xFFDC2626.toInt()
-    }
-
-    private fun formatInterval(minutes: Int): String = when {
-        minutes < 60 -> "$minutes分钟"
-        minutes % 60 == 0 -> "${minutes / 60}小时"
-        else -> "${minutes / 60}.5小时"
-    }
-
-    private fun intervalFromProgress(p: Int): Int = when (p) {
-        0 -> 30; 1 -> 60; 2 -> 90; 3 -> 120; else -> 180
-    }
-
-    private fun progressFromInterval(m: Int): Int = when {
-        m <= 30 -> 0; m <= 60 -> 1; m <= 90 -> 2; m <= 120 -> 3; else -> 4
-    }
+    private fun scoreColor(s: Int): Int = when { s >= 80 -> 0xFF16A34A.toInt(); s >= 60 -> 0xFF3B82F6.toInt(); s >= 40 -> 0xFFD97706.toInt(); else -> 0xFFDC2626.toInt() }
+    private fun intervalText(m: Int): String = when { m < 60 -> m.toString()+"m"; m % 60 == 0 -> (m/60).toString()+"h"; else -> (m/60).toString()+".5h" }
+    private fun intervalVal(p: Int): Int = when(p) { 0->30; 1->60; 2->90; 3->120; else->180 }
+    private fun intervalProg(m: Int): Int = when { m<=30->0; m<=60->1; m<=90->2; m<=120->3; else->4 }
 
     companion object {
-        private const val MATCH_PARENT = LinearLayout.LayoutParams.MATCH_PARENT
+        private const val MP = LinearLayout.LayoutParams.MATCH_PARENT
+        private const val WC = LinearLayout.LayoutParams.WRAP_CONTENT
         private const val WRAP_CONTENT = LinearLayout.LayoutParams.WRAP_CONTENT
     }
 }
